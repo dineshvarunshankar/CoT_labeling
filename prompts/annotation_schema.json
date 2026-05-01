@@ -1,0 +1,31 @@
+{
+  "type": "object",
+  "properties": {
+    "modality": {
+      "type": "string",
+      "enum": ["rgb", "thermal"],
+      "description": "Image modality inferred from the visual input."
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["easy", "hard"],
+      "description": "Reasoning difficulty for this annotation."
+    },
+    "subject_bbox": {
+      "type": "array",
+      "description": "Absolute pixel [x_min, y_min, x_max, y_max] coordinates for the target subject.",
+      "items": {
+        "type": "number",
+        "minimum": 0
+      },
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "cot": {
+      "type": "string",
+      "description": "Dense natural visual rationale explaining why the provided ground-truth answer is correct."
+    }
+  },
+  "required": ["modality", "difficulty", "subject_bbox", "cot"],
+  "additionalProperties": false
+}

@@ -1,0 +1,19 @@
+exports/
+*.pdf
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+uv.lock
+outputs/
+reference/
+
+# Generated wiki runtime outputs
+wiki/coverage/*
+!wiki/coverage/.gitkeep
+
+
+# Logs
+*.log

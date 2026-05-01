@@ -1,0 +1,37 @@
+{
+  "type": "object",
+  "properties": {
+    "findings": {
+      "type": "array",
+      "description": "Reusable new wiki findings to add. Return an empty array when no new finding is needed.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "target_page": {
+            "type": "string",
+            "description": "Existing repo-relative wiki page, such as wiki/general/rgb.md or wiki/categories/amputation_arm.md."
+          },
+          "title": {
+            "type": "string",
+            "description": "Short finding title without a numeric prefix."
+          },
+          "body": {
+            "type": "string",
+            "description": "Reusable visual guidance. Do not include per-image facts or markdown headings."
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Task IDs that motivated this finding. The pipeline stores these in wiki/log.md, not inside the finding body."
+          }
+        },
+        "required": ["target_page", "title", "body", "sources"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["findings"],
+  "additionalProperties": false
+}
