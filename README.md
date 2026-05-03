@@ -56,33 +56,22 @@ exports/
     └── no/<image_id>.jpg
 ```
 
-`selection_manifest.json` per category:
-
-```json
-{
-  "classification_name": "amputation_arm",
-  "title": "Arm Amputation",
-  "question": "Does the subject ...?",
-  "selected": {
-    "Yes": ["yes/0052_frame.jpg", "..."],
-    "No": ["no/0188_frame.jpg", "..."]
-  }
-}
-```
-
-`pipeline.manifest` resolves each image as `exports/<label>-data-vf/<gt_answer>/<filename>`,
-where `<gt_answer>` is `yes` or `no`.
-
 ## Run
 
 Run commands from the repository root. The examples below use `uv`.
 Note: You should have uv installed and path configured correctly.
-
+if not
 ```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
-export GEMINI_API_KEY=...
+```
+Export your credentials and model choice
+```bash
+export GEMINI_API_KEY=AIzaSyAgQ1HsWhoxG7zPgSlyTu__1j6xy7oSYWE
 export GEMINI_MODEL=gemini-3.1-pro-preview
-
+```
+Start the pipeline
+```bash
 uv run python -m pipeline.run
 ```
 
