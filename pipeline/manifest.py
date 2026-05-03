@@ -61,39 +61,50 @@ def _image_id(rel_path: str) -> str:
     return Path(rel_path).stem
 
 
-def _image_path(base_dir: Path, rel_path: str, gt_answer: str) -> Path:
-    filename = Path(rel_path).name
-    answer_path = base_dir / gt_answer / filename
-    if answer_path.exists():
-        return answer_path.resolve()
-    return (base_dir / rel_path).resolve()
-
-
-def iter_manifest(manifest_path: Path) -> Iterator[ImageItem]:
-    meta = json.loads(manifest_path.read_text())
-    label = meta["classification_name"]
-    title = meta.get("title", label)
-    question = meta["question"]
-    base_dir = manifest_path.parent
-
-    for ans, gt in (("Yes", "yes"), ("No", "no")):
-        for rel in meta.get("selected", {}).get(ans, []):
-            image_id = _image_id(rel)
-            yield ImageItem(
-                image_path=_image_path(base_dir, rel, gt),
-                image_id=image_id,
-                task_id=task_id(label, image_id),
-                label=label,
-                title=title,
-                question=question,
-                gt_answer=gt,
-                bbox=_get_absolute_bbox(rel),
-            )
-
-
 def iter_all() -> Iterator[ImageItem]:
-    for manifest_path in sorted(paths.EXPORTS.glob("*/selection_manifest.json")):
-        yield from iter_manifest(manifest_path)
+    from . import wiki
+    try:
+        memory = wiki.load_wiki_memory()
+    except Exception:
+        memory = None
+
+    for base_dir in sorted(paths.EXPORTS.iterdir()):
+        if not base_dir.is_dir():
+            continue
+
+        label = base_dir.name
+        if "-data" in label:
+            label = label.split("-data")[0]
+
+        title = label
+        question = ""
+        
+        if memory and memory.category_defs:
+            cat_page = memory.category_defs.get(label)
+            if cat_page:
+                title = cat_page.frontmatter.get("title", title)
+                question = cat_page.frontmatter.get("question", question)
+
+        for gt_answer in ("yes", "no"):
+            ans_dir = base_dir / gt_answer
+            if ans_dir.is_dir():
+                for img_path in sorted(ans_dir.iterdir()):
+                    if img_path.suffix.lower() not in {".jpg", ".jpeg", ".png"}:
+                        continue
+                    
+                    image_id = _image_id(img_path.name)
+                    # Use a dummy rel_path for bbox mapping if available
+                    rel_path = f"images/{img_path.name}" 
+                    yield ImageItem(
+                        image_path=img_path.resolve(),
+                        image_id=image_id,
+                        task_id=task_id(label, image_id),
+                        label=label,
+                        title=title,
+                        question=question,
+                        gt_answer=gt_answer,
+                        bbox=_get_absolute_bbox(rel_path)
+                    )
 
 
 def collect_items(labels: Iterable[str] | None = None) -> List[ImageItem]:

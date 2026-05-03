@@ -52,7 +52,6 @@ The pipeline reads tasks from `exports/` using this layout:
 ```text
 exports/
 └── <label>-data-vf/
-    ├── selection_manifest.json
     ├── yes/<image_id>.jpg
     └── no/<image_id>.jpg
 ```
