@@ -37,7 +37,7 @@ _BBOX_MAP = None
 def _load_bbox_map() -> dict:
     global _BBOX_MAP
     if _BBOX_MAP is None:
-        bbox_path = paths.ROOT / "bbox_map.json"
+        bbox_path = paths.EXPORTS / "bbox_map.json"
         if bbox_path.exists():
             _BBOX_MAP = json.loads(bbox_path.read_text())
         else:

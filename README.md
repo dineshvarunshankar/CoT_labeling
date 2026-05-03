@@ -105,7 +105,7 @@ uv run python -m pipeline.run --label amputation_arm --limit 4 --max-rounds 1 --
 
 ## Bounding Boxes
 
-The pipeline reads ground truth bounding boxes directly at runtime from `bbox_map.json` in the repository root. The model uses these coordinates to focus its spatial reasoning.
+The pipeline reads ground truth bounding boxes directly at runtime from `bbox_map.json` located inside the `exports/` directory. The model uses these coordinates to focus its spatial reasoning.
 
 `bbox_map.json` should map the relative image path to its bounding box `[x1, y1, x2, y2]` and image dimensions. 
 
