@@ -42,8 +42,9 @@ and explain the visual limitation directly.
 
 For any category, inspect contrastive thermal flow around the boxed subject:
 irregular bright, dark, or grey trails, spreading regions, or directional
-patterns that may indicate warm or cooling blood/fluid. Treat this as supporting
-evidence only when the shape, direction, and contact point plausibly connect to
+patterns that may indicate warm or cooling blood/fluid, showing where the
+flow originated or where it is heading. Treat this as supporting evidence 
+only when the shape, direction, and contact point plausibly connect to
 the boxed subject and to a casualty abnormality such as a wound-like contrast,
 amputation or abrupt limb termination, unusual body contact with the ground, or
 other injury-looking posture. Do not rely on flow-like contrast alone when it may

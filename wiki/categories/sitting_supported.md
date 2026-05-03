@@ -16,8 +16,9 @@ support.
 
 ### 002 - Support can come from body, object, or another person
 
-Support may be a wall, vehicle, ground-contacting arm, stretcher, another
-person, or object that visibly prevents the subject from sitting independently.
+Support may be a wall, vehicle, another person, 
+or any external object that visibly prevents the subject from sitting independently.
+(Note: using one's own arms to brace on the ground does NOT count as external support).
 
 ### 003 - Lying or unsupported sitting rules it out
 

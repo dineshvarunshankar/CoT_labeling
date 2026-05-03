@@ -11,14 +11,14 @@ question: "Does the subject shown in the green box appear to be sitting unsuppor
 ### 001 - Unsupported sitting requires upright seated balance
 
 A yes answer should be supported by the subject seated with hips on the ground or
-surface and the torso upright or partly upright without clear back, arm, object,
+surface and the torso upright or partly upright without clear back, object,
 or person support.
 
-### 002 - Bracing or leaning support changes the category
+### 002 - External support changes the category
 
-If the subject is leaning on a wall, arm, object, stretcher, or another person,
-or using arms to hold the torso up, explain why this is supported sitting rather
-than unsupported sitting.
+If the subject is leaning on a wall, vehicle, or any external object,
+explain why this is supported sitting rather than unsupported sitting. Note that using 
+one's own arms to brace against the ground still counts as unsupported sitting.
 
 ### 003 - Distinguish sitting from crouching or lying
 
