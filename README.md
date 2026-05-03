@@ -67,7 +67,7 @@ uv sync
 ```
 Export your credentials and model choice
 ```bash
-export GEMINI_API_KEY=AIzaSyAgQ1HsWhoxG7zPgSlyTu__1j6xy7oSYWE
+export GEMINI_API_KEY=...
 export GEMINI_MODEL=gemini-3.1-pro-preview
 ```
 Start the pipeline
