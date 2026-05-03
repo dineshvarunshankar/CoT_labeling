@@ -12,7 +12,7 @@ question: "Does the subject shown in the green box appear to have a leg amputati
 
 A yes answer should be supported by a visibly missing or abruptly terminated leg
 region, shortened lower limb, absent foot/lower leg where one should be visible,
-or clear left-right leg asymmetry tied to the boxed subject.
+or clear left-right leg 'asymmetry' tied to the boxed subject.
 
 ### 002 - Occluded or cropped legs are not enough
 

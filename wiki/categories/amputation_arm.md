@@ -12,7 +12,7 @@ question: "Does the subject shown in the green box appear to have an arm amputat
 
 A yes answer should be supported by a visible missing or abruptly terminated arm
 region, shortened upper limb, absent forearm/hand where one should be visible,
-or strong left-right arm asymmetry tied to the boxed subject.
+or strong left-right arm 'asymmetry' tied to the boxed subject.
 
 ### 002 - Hidden or tucked arms are not amputation
 
