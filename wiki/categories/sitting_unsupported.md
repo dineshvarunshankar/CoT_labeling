@@ -18,7 +18,8 @@ or person support.
 
 If the subject is leaning on a wall, vehicle, or any external object,
 explain why this is supported sitting rather than unsupported sitting. Note that using 
-one's own arms to brace against the ground still counts as unsupported sitting.
+one's own arms to brace on the ground (e.g., leaning backward) still counts as unsupported 
+sitting, unless the subject is leaning forward in a tripod posture.
 
 ### 003 - Distinguish sitting from crouching or lying
 
