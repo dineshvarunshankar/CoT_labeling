@@ -68,7 +68,7 @@ def _annotation_difficulty(payload: dict) -> str:
     return str(payload.get("difficulty", ""))
 
 
-def _has_normalized_bbox(payload: dict) -> bool:
+def _has_valid_bbox(payload: dict) -> bool:
     bbox = payload.get("subject_bbox")
     if not isinstance(bbox, list) or len(bbox) != 4:
         return False
@@ -77,15 +77,15 @@ def _has_normalized_bbox(payload: dict) -> bool:
     except (TypeError, ValueError):
         return False
     return (
-        0.0 <= left < right <= 1.0
-        and 0.0 <= top < bottom <= 1.0
+        0.0 <= left < right
+        and 0.0 <= top < bottom
     )
 
 
 def _has_complete_annotation(payload: dict) -> str:
     if not payload:
         return "no"
-    if not _has_normalized_bbox(payload):
+    if not _has_valid_bbox(payload):
         return "no"
     if not payload.get("cot"):
         return "no"

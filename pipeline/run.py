@@ -65,7 +65,7 @@ def run(
         ",".join(labels) if labels else "all",
         len(selected_items),
         max_rounds,
-        "off" if skip_wiki_maintainer else "gemini",
+        "off" if skip_wiki_maintainer else "on",
     )
     LOG.info("task mix: %s", _label_counts(selected_items) or "none")
 
@@ -208,7 +208,7 @@ def main() -> int:
         format="%(asctime)s %(levelname)s %(message)s",
     )
     third_party_level = os.environ.get("THIRD_PARTY_LOG_LEVEL", "WARNING")
-    for logger_name in ("google_genai.models", "httpx"):
+    for logger_name in ("openai", "httpx"):
         logging.getLogger(logger_name).setLevel(third_party_level)
 
     summary = run(

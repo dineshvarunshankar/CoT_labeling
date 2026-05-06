@@ -67,16 +67,16 @@ uv sync
 ```
 Export your credentials and model choice
 ```bash
-export GEMINI_API_KEY=...
-export GEMINI_MODEL=gemini-3.1-pro-preview
+export CMU_GATEWAY_API_KEY=...
+export LLM_MODEL=gemini/gemini-3.1-pro-preview
 ```
 Start the pipeline
 ```bash
 uv run python -m pipeline.run
 ```
 
-`pipeline.run` uses Gemini for both annotation and round-boundary wiki
-maintenance. The maintainer call is text-only: Gemini proposes new findings as
+`pipeline.run` uses the CMU AI Gateway for both annotation and round-boundary wiki
+maintenance. The maintainer call is text-only: the model proposes new findings as
 JSON using `prompts/wiki_maintainer_schema.json`, and the pipeline applies those
 findings to markdown deterministically. The default round budget is
 `--max-rounds 3`; the loop usually exits earlier when the maintainer returns no
@@ -162,7 +162,7 @@ CoT_labeling/
 - `pipeline.visualize`: generates an Obsidian-friendly `review.md` from annotations.
 - `pipeline.wiki_graph_vault`: generates an Obsidian vault of the wiki memory graph.
 - `pipeline.paths`: central filesystem layout.
-- `pipeline.gemini`: minimal Gemini API wrapper.
+- `pipeline.gemini`: minimal LLM API client (CMU AI Gateway / OpenAI-compatible).
 
 ## Outputs
 

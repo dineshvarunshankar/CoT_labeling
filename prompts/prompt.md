@@ -135,14 +135,12 @@ should still explain what was checked and what was seen instead. Do not default
 to `no` because the evidence is uncertain; describe the uncertainty and why the
 provided ground truth remains the answer.
 
-Write the CoT as a natural language hierarchy of reasoning, not a one-sentence caption:
+Write the CoT as a natural language hierarchy of reasoning, not a one-sentence caption or a rigid template. The rationale must naturally flow through these logical steps:
 
-- start from the boxed subject's pose, location, and visible body layout;
-- identify the primary evidence for or against the active category;
-- connect nearby evidence to the subject only when the visual relationship is
-  plausible;
-- include relevant rule-outs, ambiguity, occlusion, or alternative explanations;
-- end by stating your final conclusion clearly based on the visual evidence. DO NOT mention the provided ground truth.
+- **What you see:** Start from the boxed subject's pose, location, and visible body layout. State all primary visible evidence for or against the active category.
+- **What is ruled out:** Explain what alternative interpretations, ambiguities, or other categories are ruled out by the evidence. Explicitly state why certain alternatives are not the case based on what you see.
+- **The synthesis of evidence:** Gather all the critical visual evidence that directly addresses the question.
+- **The conclusion:** End by clearly summarizing your selection based on the evidence (e.g., "Therefore, based on this evidence I conclude it as .... and hence I am selecting [yes/no]."). DO NOT state that you were provided a ground truth answer.
 
 ## Difficulty
 
@@ -150,8 +148,7 @@ Use `easy` when the visual evidence is clear and little rule-out reasoning is
 needed.
 
 Use `hard` when the image has occlusion, crop ambiguity, low resolution,
-thermal/RGB degradation, edge-of-frame subjects, subtle posture, or meaningful
-alternative interpretations.
+thermal/RGB degradation, edge-of-frame subjects, subtle posture, or simply its ambiguous or difficult to make a decision.
 
 ## Output
 
