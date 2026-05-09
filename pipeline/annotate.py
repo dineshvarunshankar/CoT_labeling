@@ -123,9 +123,10 @@ def parse_annotation_json(
 
 
 def _annotation_path(item: manifest.ImageItem) -> Path:
-    out_dir = paths.ANNOTATIONS / item.label
+    out_dir = paths.COT_ANNOTATIONS / item.label
     out_dir.mkdir(parents=True, exist_ok=True)
     return out_dir / f"{item.image_id}.json"
+
 
 
 def _repo_relative(path: Path) -> str:

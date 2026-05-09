@@ -43,8 +43,9 @@ def reset() -> None:
 
 
 def _annotation_path(item: manifest.ImageItem) -> Path | None:
-    path = paths.ANNOTATIONS / item.label / f"{item.image_id}.json"
+    path = paths.COT_ANNOTATIONS / item.label / f"{item.image_id}.json"
     return path if path.exists() else None
+
 
 
 def _repo_relative(path: Path) -> str:

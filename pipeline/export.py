@@ -29,9 +29,10 @@ def _row(ann: dict) -> dict:
 
 
 def _iter_annotations() -> Iterable[dict]:
-    if not paths.ANNOTATIONS.exists():
+    if not paths.COT_ANNOTATIONS.exists():
         return
-    for path in sorted(paths.ANNOTATIONS.rglob("*.json")):
+    for path in sorted(paths.COT_ANNOTATIONS.rglob("*.json")):
+
         try:
             yield json.loads(path.read_text())
         except json.JSONDecodeError as e:
@@ -39,8 +40,8 @@ def _iter_annotations() -> Iterable[dict]:
 
 
 def export() -> dict:
-    paths.DATASET.mkdir(parents=True, exist_ok=True)
     sft: List[dict] = []
+
     rlvr: List[dict] = []
 
     for ann in _iter_annotations():

@@ -15,17 +15,17 @@ annotations into numbered wiki findings that future rounds can use.
 
 ## Repository Layers
 
-- `exports/`: input manifests and images. Treat as read-only source material.
+- `data/`: input splits and exports. Treat as read-only source material.
 - `wiki/`: persistent memory. Human findings and agent findings live here.
 - `wiki/index.md`: compact navigation surface for the maintainer agent.
 - `wiki/log.md`: append-only timeline of wiki changes.
 - `wiki/glossary.md`: shared vocabulary for tasks, findings, coverage, and
   annotation outputs.
 - `wiki/coverage/coverage.csv`: generated requeue sheet. Do not hand-edit.
-- `outputs/annotations/`: generated per-task annotation JSON.
-- `outputs/dataset/`: generated SFT/RLVR JSONL exports.
+- `outputs/cot_annotations/`: generated per-task annotation JSON and JSONL exports.
 - `prompts/prompt.md`: Gemini image annotation prompt.
 - `prompts/wiki_maintainer.md`: wiki-maintainer prompt.
+
 
 ## Runtime Model
 
@@ -84,12 +84,13 @@ Allowed proposed targets:
 
 Forbidden proposals:
 
-- do not edit `outputs/annotations/`;
+- do not edit `outputs/cot_annotations/`;
 - do not change ground-truth answers;
 - do not edit generated datasets;
 - do not propose changes to `## Human Findings`;
 - do not propose changes to `wiki/index.md`;
 - do not propose changes to `wiki/coverage/coverage.csv`.
+
 
 ## Wiki Page Format
 

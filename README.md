@@ -21,11 +21,11 @@ see [INSTRUCTIONS.md](INSTRUCTIONS.md) and [AGENTS.md](AGENTS.md).
 
 ```mermaid
 flowchart TD
-    A["exports/ manifests + images"]:::input
+    A["data/ splits + exports"]:::input
     W["wiki/ memory<br/>general + categories"]:::wiki
     B["pipeline.run<br/>load wiki, refresh coverage"]
     D["annotate pending tasks<br/>Gemini structured JSON"]
-    E["outputs/annotations/<br/>&lt;label&gt;/&lt;image_id&gt;.json"]:::output
+    E["outputs/cot_annotations/<br/>&lt;label&gt;/&lt;image_id&gt;.json"]:::output
     M["wiki-maintainer agent<br/>reads prompts/wiki_maintainer.md"]
     N{"new numbered<br/>finding added?"}
     R["coverage marks<br/>affected tasks not_done"]
@@ -37,6 +37,7 @@ flowchart TD
     N -- no --> X
     N -- yes --> R --> B
 
+
     classDef input fill:#eef,stroke:#558,stroke-width:1px,color:#000;
     classDef wiki fill:#efe,stroke:#585,stroke-width:1px,color:#000;
     classDef output fill:#fee,stroke:#855,stroke-width:1px,color:#000;
@@ -47,14 +48,18 @@ Editing the text of an existing finding does not create a new coverage column.
 
 ## Inputs
 
-The pipeline reads tasks from `exports/` using this layout:
+The pipeline reads tasks from `data/` or `exports/`. You can specify a specific split using `--data-dir`:
 
 ```text
-exports/
-└── <label>-data-vf/
-    ├── yes/<image_id>.jpg
-    └── no/<image_id>.jpg
+data/
+└── <split_name>/
+    └── exports/
+        ├── <label>-data-vf/
+        │   ├── yes/<image_id>.jpg
+        │   └── no/<image_id>.jpg
+        └── bbox_map.json
 ```
+
 
 ## Run
 
@@ -103,9 +108,17 @@ Small annotation-only debug run:
 uv run python -m pipeline.run --label amputation_arm --limit 4 --max-rounds 1 --skip-wiki-maintainer
 ```
 
+To run on a specific split:
+
+```bash
+uv run python -m pipeline.run --data-dir data/01_05_26/exports
+```
+
+
 ## Bounding Boxes
 
-The pipeline reads ground truth bounding boxes directly at runtime from `bbox_map.json` located inside the `exports/` directory. The model uses these coordinates to focus its spatial reasoning.
+The pipeline reads ground truth bounding boxes directly at runtime from `bbox_map.json` located inside the data directory (or its parent). The model uses these coordinates to focus its spatial reasoning.
+
 
 `bbox_map.json` should map the relative image path to its bounding box `[x1, y1, x2, y2]` and image dimensions. 
 
@@ -141,13 +154,14 @@ This generates a dedicated folder at `outputs/wiki_graph_vault/`. Open this spec
 CoT_labeling/
 ├── AGENTS.md        # operating schema for annotation and wiki maintenance
 ├── INSTRUCTIONS.md  # operational guidance
-├── exports/         # input manifests and images
+├── data/            # input splits and exports
 ├── prompts/         # annotation prompt, output schema, maintainer prompt
 ├── reference/       # source material for wiki authoring
 ├── wiki/            # persistent LLM memory and generated coverage sheet
 ├── pipeline/        # executable pipeline code
 └── outputs/         # generated annotations and dataset exports
 ```
+
 
 ## Core Files
 
@@ -157,7 +171,8 @@ CoT_labeling/
 - `pipeline.wiki`: loads prompt files, reads wiki pages, extracts numbered
   findings, runs the Gemini maintainer pass, applies findings, and regenerates
   the wiki index.
-- `pipeline.manifest`: reads task manifests from `exports/`.
+- `pipeline.manifest`: reads task manifests from data directories.
+
 - `pipeline.export`: writes SFT/RLVR JSONL files after coverage is clean.
 - `pipeline.visualize`: generates an Obsidian-friendly `review.md` from annotations.
 - `pipeline.wiki_graph_vault`: generates an Obsidian vault of the wiki memory graph.
@@ -166,21 +181,24 @@ CoT_labeling/
 
 ## Outputs
 
-`outputs/annotations/` is the canonical annotation store:
+`outputs/cot_annotations/` is the canonical annotation store and dataset home:
 
 ```text
-outputs/annotations/<label>/<image_id>.json
+outputs/cot_annotations/<label>/<image_id>.json
+outputs/cot_annotations/sft.jsonl
+outputs/cot_annotations/rlvr.jsonl
 ```
 
-Each file is one image/category task.
+Each JSON file is one image/category task.
 
-`outputs/dataset/` is derived from annotations only after coverage is clean.
 The exporter splits by annotation difficulty: `easy` rows go to `sft.jsonl` and
 `hard` rows go to `rlvr.jsonl`. Each row is one task:
 
+
 ```json
 {
-  "image": "exports/.../0052_frame.jpg",
+  "image": "data/.../0052_frame.jpg",
+
   "task_id": "amputation_arm__0052_frame",
   "image_id": "0052_frame",
   "label": "amputation_arm",
@@ -200,7 +218,8 @@ Each saved annotation is intentionally small:
 ```json
 {
   "image_id": "0052_frame",
-  "image_path": "exports/.../0052_frame.jpg",
+  "image_path": "data/.../0052_frame.jpg",
+
   "label": "amputation_arm",
   "question": "Does the subject ...?",
   "gt_answer": "yes",

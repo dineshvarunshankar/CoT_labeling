@@ -11,6 +11,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 EXPORTS = ROOT / "exports"
+DATA = ROOT / "data"
+
 WIKI = ROOT / "wiki"
 WIKI_CATEGORIES = WIKI / "categories"
 WIKI_GENERAL = WIKI / "general"
@@ -32,14 +34,14 @@ WIKI_COVERAGE = WIKI / "coverage"
 
 # Generated model outputs.
 OUTPUTS = ROOT / "outputs"
-ANNOTATIONS = OUTPUTS / "annotations"
+COT_ANNOTATIONS = OUTPUTS / "cot_annotations"
 
 COVERAGE = WIKI_COVERAGE
 COVERAGE_CSV = COVERAGE / "coverage.csv"
 
-DATASET = OUTPUTS / "dataset"
-DATASET_SFT = DATASET / "sft.jsonl"
-DATASET_RLVR = DATASET / "rlvr.jsonl"
+DATASET_SFT = COT_ANNOTATIONS / "sft.jsonl"
+DATASET_RLVR = COT_ANNOTATIONS / "rlvr.jsonl"
+
 
 AGENTS_MD = ROOT / "AGENTS.md"
 
@@ -50,8 +52,8 @@ def ensure_dirs() -> None:
         PROMPTS,
         WIKI_GENERAL,
         WIKI_CATEGORIES,
-        ANNOTATIONS,
+        COT_ANNOTATIONS,
         COVERAGE,
-        DATASET,
     ):
         p.mkdir(parents=True, exist_ok=True)
+

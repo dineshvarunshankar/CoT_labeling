@@ -34,23 +34,32 @@ class ImageItem:
 
 _BBOX_MAP = None
 
-def _load_bbox_map() -> dict:
+def _load_bbox_map(data_root: Path) -> dict:
     global _BBOX_MAP
     if _BBOX_MAP is None:
-        bbox_path = paths.EXPORTS / "bbox_map.json"
-        if bbox_path.exists():
+        # Check in the provided directory and its parent
+        search_paths = [data_root / "bbox_map.json", data_root.parent / "bbox_map.json"]
+        
+        bbox_path = None
+        for p in search_paths:
+            if p.exists():
+                bbox_path = p
+                break
+        
+        if bbox_path:
             _BBOX_MAP = json.loads(bbox_path.read_text())
         else:
             _BBOX_MAP = {}
     return _BBOX_MAP
 
-def _get_absolute_bbox(rel_path: str) -> tuple[float, float, float, float] | None:
-    bbox_map = _load_bbox_map()
+def _get_absolute_bbox(rel_path: str, data_root: Path) -> tuple[float, float, float, float] | None:
+    bbox_map = _load_bbox_map(data_root)
     data = bbox_map.get(rel_path)
     if not data:
         return None
     x1, y1, x2, y2 = data["bbox"]
     return (float(x1), float(y1), float(x2), float(y2))
+
 
 
 def task_id(label: str, image_id: str) -> str:
@@ -61,14 +70,19 @@ def _image_id(rel_path: str) -> str:
     return Path(rel_path).stem
 
 
-def iter_all() -> Iterator[ImageItem]:
+def iter_all(data_dir: str | None = None) -> Iterator[ImageItem]:
     from . import wiki
     try:
         memory = wiki.load_wiki_memory()
     except Exception:
         memory = None
 
-    for base_dir in sorted(paths.EXPORTS.iterdir()):
+    search_root = Path(data_dir).resolve() if data_dir else paths.EXPORTS
+    if not search_root.exists():
+        search_root = paths.DATA
+
+    for base_dir in sorted(search_root.iterdir()):
+
         if not base_dir.is_dir():
             continue
 
@@ -103,13 +117,15 @@ def iter_all() -> Iterator[ImageItem]:
                         title=title,
                         question=question,
                         gt_answer=gt_answer,
-                        bbox=_get_absolute_bbox(rel_path)
+                        bbox=_get_absolute_bbox(rel_path, search_root)
                     )
 
 
-def collect_items(labels: Iterable[str] | None = None) -> List[ImageItem]:
-    items = list(iter_all())
+
+def collect_items(labels: Iterable[str] | None = None, data_dir: str | None = None) -> List[ImageItem]:
+    items = list(iter_all(data_dir=data_dir))
     if labels:
         wanted = set(labels)
         items = [item for item in items if item.label in wanted]
     return items
+

@@ -6,9 +6,10 @@ from pathlib import Path
 from . import paths
 
 def generate_review_md() -> None:
-    if not paths.ANNOTATIONS.exists():
+    if not paths.COT_ANNOTATIONS.exists():
         print("No annotations found. Run the pipeline first.")
         return
+
 
     out_path = paths.OUTPUTS / "review.md"
     lines = [
@@ -20,7 +21,8 @@ def generate_review_md() -> None:
     ]
 
     annotations = []
-    for path in paths.ANNOTATIONS.rglob("*.json"):
+    for path in paths.COT_ANNOTATIONS.rglob("*.json"):
+
         try:
             ann = json.loads(path.read_text(encoding="utf-8"))
             annotations.append(ann)

@@ -54,12 +54,14 @@ def run(
     max_rounds: int = 3,
     skip_wiki_maintainer: bool = False,
     fresh_coverage: bool = False,
+    data_dir: str | None = None,
 ) -> dict:
     paths.ensure_dirs()
     if fresh_coverage:
         coverage.reset()
 
-    selected_items = _apply_limit(manifest.collect_items(labels), limit)
+    selected_items = _apply_limit(manifest.collect_items(labels, data_dir=data_dir), limit)
+
     LOG.info(
         "run start: labels=%s total_tasks=%d max_rounds=%d wiki_maintainer=%s",
         ",".join(labels) if labels else "all",
@@ -201,7 +203,9 @@ def main() -> int:
         action="store_true",
         help="debug only: annotate without the wiki-maintainer phase",
     )
+    parser.add_argument("--data-dir", type=str, default=None, help="override the input data directory")
     args = parser.parse_args()
+
 
     logging.basicConfig(
         level=os.environ.get("LOG_LEVEL", "INFO"),
@@ -217,7 +221,9 @@ def main() -> int:
         max_rounds=args.max_rounds,
         skip_wiki_maintainer=args.skip_wiki_maintainer,
         fresh_coverage=args.fresh_coverage,
+        data_dir=args.data_dir,
     )
+
     print(summary)
     return 0
 
