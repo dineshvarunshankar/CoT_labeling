@@ -48,7 +48,7 @@ Editing the text of an existing finding does not create a new coverage column.
 
 ## Inputs
 
-The pipeline reads tasks from `data/` or `exports/`. You can specify a specific split using `--data-dir`:
+The pipeline reads tasks from `data/`. You can specify a specific split using `--split`, which automatically manages both input and output directories:
 
 ```text
 data/
@@ -59,6 +59,7 @@ data/
         │   └── no/<image_id>.jpg
         └── bbox_map.json
 ```
+
 
 
 ## Run
@@ -108,11 +109,14 @@ Small annotation-only debug run:
 uv run python -m pipeline.run --label amputation_arm --limit 4 --max-rounds 1 --skip-wiki-maintainer
 ```
 
-To run on a specific split:
+To run on a specific split (e.g., `data/01_05_26/`):
 
 ```bash
-uv run python -m pipeline.run --data-dir data/01_05_26/exports
+uv run python -m pipeline.run --split 01_05_26
 ```
+
+This will automatically read from `data/01_05_26/` and write to `outputs/01_05_26/`.
+
 
 
 ## Bounding Boxes
@@ -138,9 +142,10 @@ Since annotations are stored as JSON files, they cannot be natively viewed along
 
 **1. Annotation Review (`review.md`)**
 ```bash
-uv run python -m pipeline.visualize
+uv run python -m pipeline.visualize --split 01_05_26
 ```
-This generates `outputs/review.md`. Open this file in Obsidian to scroll through all annotations grouped by category, with the generated Chain-of-Thought appearing directly below the corresponding image.
+This generates `outputs/01_05_26/review.md`. Open this file in Obsidian to scroll through all annotations grouped by category, with the generated Chain-of-Thought appearing directly below the corresponding image.
+
 
 **2. Wiki Memory Graph Vault (`outputs/wiki_graph_vault/`)**
 ```bash
@@ -181,13 +186,15 @@ CoT_labeling/
 
 ## Outputs
 
-`outputs/cot_annotations/` is the canonical annotation store and dataset home:
+`outputs/<split_name>/cot_annotations/` is the canonical annotation store and dataset home:
 
 ```text
-outputs/cot_annotations/<label>/<image_id>.json
-outputs/cot_annotations/sft.jsonl
-outputs/cot_annotations/rlvr.jsonl
+outputs/<split_name>/cot_annotations/<label>/<image_id>.json
+outputs/<split_name>/cot_annotations/sft.jsonl
+outputs/<split_name>/cot_annotations/rlvr.jsonl
+outputs/<split_name>/review.md
 ```
+
 
 Each JSON file is one image/category task.
 
