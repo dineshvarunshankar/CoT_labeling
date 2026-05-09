@@ -1,6 +1,7 @@
 """Generate an Obsidian-friendly Markdown review file from annotations."""
 
 import json
+import os
 from pathlib import Path
 
 from . import paths
@@ -44,12 +45,24 @@ def generate_review_md() -> None:
         for ann in sorted(grouped[label], key=lambda x: x.get("image_id", "")):
             image_id = ann.get("image_id")
             image_path = ann.get("image_path")
+            if image_path:
+                img_p = Path(image_path)
+                # If the stored path doesn't exist, try to find it under data/
+                if not (paths.ROOT / img_p).exists():
+                    matches = list(paths.DATA.rglob(img_p.name))
+                    if matches:
+                        # Use the first match relative to ROOT
+                        image_path = str(matches[0].relative_to(paths.ROOT))
             
-            # Obsidian image link syntax or standard markdown
-            # Using standard markdown so it works everywhere, but pointing relative to outputs/
-            # The image path in annotation is relative to ROOT. 
-            # We are writing to ROOT/outputs/review.md, so relative path to image is ../image_path
-            rel_image = f"../{image_path}"
+            # Calculate relative path from the review file to ROOT
+            # If out_path is outputs/split/review.md, parent is outputs/split
+            # Relative path to ROOT is ../../
+            try:
+                rel_to_root = os.path.relpath(paths.ROOT, out_path.parent)
+            except ValueError:
+                rel_to_root = ".." # fallback
+            
+            rel_image = f"{rel_to_root}/{image_path}" if image_path else ""
             
             gt = ann.get("gt_answer", "")
             modality = ann.get("modality", "")
@@ -78,7 +91,18 @@ def generate_review_md() -> None:
     print("Open this file in Obsidian to review!")
 
 def main() -> None:
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate an Obsidian review file.")
+    parser.add_argument("--split", type=str, default=None, help="Process a specific data split")
+    args = parser.parse_args()
+
+    if args.split:
+        paths.set_split(args.split)
+        # Ensure directories exist for this split if we're generating outputs there
+        paths.ensure_dirs()
+
     generate_review_md()
 
 if __name__ == "__main__":
     main()
+

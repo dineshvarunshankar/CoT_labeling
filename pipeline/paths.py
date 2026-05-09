@@ -43,6 +43,24 @@ DATASET_SFT = COT_ANNOTATIONS / "sft.jsonl"
 DATASET_RLVR = COT_ANNOTATIONS / "rlvr.jsonl"
 
 
+def set_split(split_name: str) -> None:
+    """Redirect input/output to a specific split subdirectory."""
+    global DATA, OUTPUTS, COT_ANNOTATIONS, DATASET_SFT, DATASET_RLVR, COVERAGE, COVERAGE_CSV
+
+    # Update Data
+    DATA = ROOT / "data" / split_name
+    # Update Outputs
+    OUTPUTS = ROOT / "outputs" / split_name
+    COT_ANNOTATIONS = OUTPUTS / "cot_annotations"
+    DATASET_SFT = COT_ANNOTATIONS / "sft.jsonl"
+    DATASET_RLVR = COT_ANNOTATIONS / "rlvr.jsonl"
+    # Update Coverage (keep it split-local if possible, or keep it central?)
+    # Usually coverage is per-split if annotations are per-split.
+    COVERAGE = OUTPUTS / "coverage"
+    COVERAGE_CSV = COVERAGE / "coverage.csv"
+
+
+
 AGENTS_MD = ROOT / "AGENTS.md"
 
 
@@ -56,4 +74,5 @@ def ensure_dirs() -> None:
         COVERAGE,
     ):
         p.mkdir(parents=True, exist_ok=True)
+
 

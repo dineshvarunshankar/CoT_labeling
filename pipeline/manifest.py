@@ -81,7 +81,12 @@ def iter_all(data_dir: str | None = None) -> Iterator[ImageItem]:
     if not search_root.exists():
         search_root = paths.DATA
 
+    # Auto-drill into exports/ if present (handles split/exports/... structure)
+    if (search_root / "exports").is_dir():
+        search_root = search_root / "exports"
+
     for base_dir in sorted(search_root.iterdir()):
+
 
         if not base_dir.is_dir():
             continue

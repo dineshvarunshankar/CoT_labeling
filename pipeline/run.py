@@ -55,8 +55,13 @@ def run(
     skip_wiki_maintainer: bool = False,
     fresh_coverage: bool = False,
     data_dir: str | None = None,
+    split: str | None = None,
 ) -> dict:
+    if split:
+        paths.set_split(split)
+
     paths.ensure_dirs()
+
     if fresh_coverage:
         coverage.reset()
 
@@ -204,7 +209,9 @@ def main() -> int:
         help="debug only: annotate without the wiki-maintainer phase",
     )
     parser.add_argument("--data-dir", type=str, default=None, help="override the input data directory")
+    parser.add_argument("--split", type=str, default=None, help="process a specific data split (e.g. 01_05_26)")
     args = parser.parse_args()
+
 
 
     logging.basicConfig(
@@ -222,7 +229,9 @@ def main() -> int:
         skip_wiki_maintainer=args.skip_wiki_maintainer,
         fresh_coverage=args.fresh_coverage,
         data_dir=args.data_dir,
+        split=args.split,
     )
+
 
     print(summary)
     return 0
