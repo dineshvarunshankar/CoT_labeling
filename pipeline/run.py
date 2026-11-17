@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import logging
+import json
 import os
 from typing import Iterable, List
 
@@ -48,6 +49,36 @@ def _label_counts(items: List[manifest.ImageItem]) -> str:
     return ", ".join(f"{label}={count}" for label, count in sorted(counts.items()))
 
 
+def _read_pending_maintenance() -> set[str]:
+    path = paths.OUTPUTS / "maintainer" / "pending.json"
+    if not path.exists():
+        return set()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, list) or any(not isinstance(value, str) for value in payload):
+        raise ValueError(f"Invalid pending maintenance state: {path}")
+    return set(payload)
+
+
+def _write_pending_maintenance(task_ids: set[str]) -> None:
+    path = paths.OUTPUTS / "maintainer" / "pending.json"
+    if not task_ids:
+        path.unlink(missing_ok=True)
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(".tmp")
+    temporary.write_text(json.dumps(sorted(task_ids)), encoding="utf-8")
+    temporary.replace(path)
+
+
+def _saved_annotations(items: List[manifest.ImageItem], task_ids: set[str]) -> List[dict]:
+    payloads = []
+    for item in items:
+        if item.task_id in task_ids:
+            path = paths.COT_ANNOTATIONS / item.label / f"{item.image_id}.json"
+            payloads.append(json.loads(path.read_text(encoding="utf-8")))
+    return payloads
+
+
 def run(
     labels: list[str] | None = None,
     limit: int | None = None,
@@ -57,8 +88,7 @@ def run(
     data_dir: str | None = None,
     split: str | None = None,
 ) -> dict:
-    if split:
-        paths.set_split(split)
+    paths.set_split(split)
 
     paths.ensure_dirs()
 
@@ -77,6 +107,8 @@ def run(
     LOG.info("task mix: %s", _label_counts(selected_items) or "none")
 
     client = GeminiClient()
+    selected_ids = {item.task_id for item in selected_items}
+    pending_maintenance = _read_pending_maintenance()
 
     total_processed = 0
     converged = False
@@ -88,7 +120,7 @@ def run(
         complete_count = len(selected_items) - len(queue)
         rounds_completed = round_idx
 
-        if not queue:
+        if not queue and not (pending_maintenance & selected_ids):
             LOG.info(
                 "round %d/%d: queue empty; complete=%d/%d; converged",
                 round_idx,
@@ -107,12 +139,15 @@ def run(
             complete_count,
             len(selected_items),
         )
+        if queue and not skip_wiki_maintainer:
+            pending_maintenance.update(item.task_id for item in queue)
+            _write_pending_maintenance(pending_maintenance)
         annotations = annotate.annotate_many(
             queue,
             client=client,
             force=True,
             reload_wiki_each_call=False,
-        )
+        ) if queue else []
         total_processed += len(annotations)
         LOG.info(
             "round %d/%d: annotation pass wrote=%d/%d",
@@ -127,18 +162,23 @@ def run(
             converged = True
             break
 
+        incomplete = set(_pending_task_ids(coverage.refresh(selected_items)))
+        reviewed_ids = (pending_maintenance & selected_ids) - incomplete
+        payloads = _saved_annotations(selected_items, reviewed_ids)
         columns_before = set(wiki.coverage_columns())
         LOG.info(
             "round %d/%d: wiki maintainer reviewing %d annotation(s)",
             round_idx,
             max_rounds,
-            len(annotations),
+            len(payloads),
         )
         wiki.run_maintainer(
             client,
-            [ann.to_dict() for ann in annotations],
+            payloads,
             round_idx=round_idx,
         )
+        pending_maintenance.difference_update(reviewed_ids)
+        _write_pending_maintenance(pending_maintenance)
         columns_after = set(wiki.coverage_columns())
 
         if columns_after == columns_before:
@@ -168,7 +208,7 @@ def run(
     remaining = _pending_task_ids(coverage_rows)
     export_summary: dict = {}
     if converged and not remaining:
-        export_summary = export.export()
+        export_summary = export.export(task_ids=[item.task_id for item in selected_items])
         LOG.info(
             "run complete: rounds=%d processed_annotations=%d pending=0 exported=%s",
             rounds_completed,

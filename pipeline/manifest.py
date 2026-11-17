@@ -32,25 +32,17 @@ class ImageItem:
             "bbox": self.bbox,
         }
 
-_BBOX_MAP = None
+_BBOX_MAPS: dict[Path, dict] = {}
+
 
 def _load_bbox_map(data_root: Path) -> dict:
-    global _BBOX_MAP
-    if _BBOX_MAP is None:
-        # Check in the provided directory and its parent
+    data_root = data_root.resolve()
+    if data_root not in _BBOX_MAPS:
         search_paths = [data_root / "bbox_map.json", data_root.parent / "bbox_map.json"]
-        
-        bbox_path = None
-        for p in search_paths:
-            if p.exists():
-                bbox_path = p
-                break
-        
-        if bbox_path:
-            _BBOX_MAP = json.loads(bbox_path.read_text())
-        else:
-            _BBOX_MAP = {}
-    return _BBOX_MAP
+        bbox_path = next((path for path in search_paths if path.exists()), None)
+        _BBOX_MAPS[data_root] = json.loads(bbox_path.read_text()) if bbox_path else {}
+    return _BBOX_MAPS[data_root]
+
 
 def _get_absolute_bbox(rel_path: str, data_root: Path) -> tuple[float, float, float, float] | None:
     bbox_map = _load_bbox_map(data_root)
@@ -59,7 +51,6 @@ def _get_absolute_bbox(rel_path: str, data_root: Path) -> tuple[float, float, fl
         return None
     x1, y1, x2, y2 = data["bbox"]
     return (float(x1), float(y1), float(x2), float(y2))
-
 
 
 def task_id(label: str, image_id: str) -> str:
@@ -81,13 +72,11 @@ def iter_all(data_dir: str | None = None) -> Iterator[ImageItem]:
     if not search_root.exists():
         search_root = paths.DATA
 
-    # Auto-drill into exports/ if present (handles split/exports/... structure)
+    # Accept either a split directory or its exports directory.
     if (search_root / "exports").is_dir():
         search_root = search_root / "exports"
 
     for base_dir in sorted(search_root.iterdir()):
-
-
         if not base_dir.is_dir():
             continue
 
@@ -97,7 +86,7 @@ def iter_all(data_dir: str | None = None) -> Iterator[ImageItem]:
 
         title = label
         question = ""
-        
+
         if memory and memory.category_defs:
             cat_page = memory.category_defs.get(label)
             if cat_page:
@@ -110,10 +99,9 @@ def iter_all(data_dir: str | None = None) -> Iterator[ImageItem]:
                 for img_path in sorted(ans_dir.iterdir()):
                     if img_path.suffix.lower() not in {".jpg", ".jpeg", ".png"}:
                         continue
-                    
+
                     image_id = _image_id(img_path.name)
-                    # Use a dummy rel_path for bbox mapping if available
-                    rel_path = f"images/{img_path.name}" 
+                    rel_path = f"images/{img_path.name}"
                     yield ImageItem(
                         image_path=img_path.resolve(),
                         image_id=image_id,
@@ -124,7 +112,6 @@ def iter_all(data_dir: str | None = None) -> Iterator[ImageItem]:
                         gt_answer=gt_answer,
                         bbox=_get_absolute_bbox(rel_path, search_root)
                     )
-
 
 
 def collect_items(labels: Iterable[str] | None = None, data_dir: str | None = None) -> List[ImageItem]:

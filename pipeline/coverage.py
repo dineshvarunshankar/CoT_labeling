@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List
 
 from . import manifest, paths, wiki
+from .validation import is_complete_annotation, validate_bbox
 
 LOG = logging.getLogger(__name__)
 
@@ -59,7 +60,8 @@ def _read_annotation(path: Path | None) -> dict:
     if path is None:
         return {}
     try:
-        return json.loads(path.read_text())
+        payload = json.loads(path.read_text())
+        return payload if isinstance(payload, dict) else {}
     except json.JSONDecodeError:
         LOG.warning("malformed annotation: %s", path)
         return {}
@@ -70,27 +72,15 @@ def _annotation_difficulty(payload: dict) -> str:
 
 
 def _has_valid_bbox(payload: dict) -> bool:
-    bbox = payload.get("subject_bbox")
-    if not isinstance(bbox, list) or len(bbox) != 4:
-        return False
     try:
-        left, top, right, bottom = (float(value) for value in bbox)
-    except (TypeError, ValueError):
+        validate_bbox(payload.get("subject_bbox"))
+    except ValueError:
         return False
-    return (
-        0.0 <= left < right
-        and 0.0 <= top < bottom
-    )
+    return True
 
 
 def _has_complete_annotation(payload: dict) -> str:
-    if not payload:
-        return "no"
-    if not _has_valid_bbox(payload):
-        return "no"
-    if not payload.get("cot"):
-        return "no"
-    return "yes"
+    return "yes" if is_complete_annotation(payload) else "no"
 
 
 def _finding_columns_for_label(memory: wiki.WikiMemory, label: str) -> List[str]:
@@ -98,14 +88,27 @@ def _finding_columns_for_label(memory: wiki.WikiMemory, label: str) -> List[str]
 
 
 def refresh(items: Iterable[manifest.ImageItem]) -> List[dict]:
-    """Refresh coverage.csv while preserving existing done cells."""
+    """Update the sheet, preserve other tasks, and return selected rows."""
     paths.COVERAGE.mkdir(parents=True, exist_ok=True)
     memory = wiki.load_wiki_memory()
     existing = _read_existing()
     all_finding_cols = memory.all_finding_columns()
 
-    rows: List[dict] = []
+    rows_by_task = {}
+    for tid, old in existing.items():
+        row = {field: old.get(field, "") for field in META_FIELDS}
+        applicable = set(_finding_columns_for_label(memory, row["label"]))
+        for col in all_finding_cols:
+            row[col] = (
+                "n/a" if col not in applicable
+                else "done" if old.get(col) == "done"
+                else "not_done"
+            )
+        rows_by_task[tid] = row
+
+    selected = set()
     for item in items:
+        selected.add(item.task_id)
         old = existing.get(item.task_id, {})
         ann_path = _annotation_path(item)
         ann_payload = _read_annotation(ann_path)
@@ -119,6 +122,11 @@ def refresh(items: Iterable[manifest.ImageItem]) -> List[dict]:
             "has_annotation": _has_complete_annotation(ann_payload),
             "difficulty": _annotation_difficulty(ann_payload),
         }
+        if any(
+            ann_payload.get(field) != row[field]
+            for field in ("image_id", "image_path", "label", "gt_answer")
+        ):
+            row["has_annotation"] = "no"
         for col in all_finding_cols:
             if col not in applicable:
                 row[col] = "n/a"
@@ -126,16 +134,17 @@ def refresh(items: Iterable[manifest.ImageItem]) -> List[dict]:
                 row[col] = "done"
             else:
                 row[col] = "not_done"
-        rows.append(row)
+        rows_by_task[item.task_id] = row
 
-    rows.sort(key=lambda row: row["task_id"])
+    rows = sorted(rows_by_task.values(), key=lambda row: row["task_id"])
     _write_rows(rows, all_finding_cols)
-    return rows
+    return [row for row in rows if row["task_id"] in selected]
 
 
 def mark_done(items: Iterable[manifest.ImageItem]) -> List[dict]:
     item_list = list(items)
-    rows = refresh(manifest.iter_all())
+    refresh(item_list)
+    rows = list(_read_existing().values())
     memory = wiki.load_wiki_memory()
     all_finding_cols = memory.all_finding_columns()
     done_by_task = {
@@ -151,7 +160,8 @@ def mark_done(items: Iterable[manifest.ImageItem]) -> List[dict]:
 
 
 def mark_not_done(task_ids: Iterable[str]) -> List[dict]:
-    rows = refresh(manifest.iter_all())
+    refresh([])
+    rows = list(_read_existing().values())
     wanted = set(task_ids)
     memory = wiki.load_wiki_memory()
     all_finding_cols = memory.all_finding_columns()

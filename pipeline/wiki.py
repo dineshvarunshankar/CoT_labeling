@@ -281,27 +281,30 @@ def _save_maintainer_raw(round_idx: int, raw_text: str) -> None:
 
 
 def _parse_maintainer_response(raw_text: str) -> List[dict]:
-    cleaned = raw_text.strip()
-    if not cleaned:
-        LOG.warning("wiki maintainer: empty response; treating as no findings")
-        return []
     try:
-        payload = json.loads(cleaned)
-    except json.JSONDecodeError as e:
-        LOG.warning(
-            "wiki maintainer: invalid JSON (%s); treating as no findings. "
-            "Inspect outputs/maintainer/round_*.json for the raw response.",
-            e,
-        )
-        return []
+        payload = json.loads(raw_text)
+    except json.JSONDecodeError as exc:
+        raise ValueError("wiki maintainer: response must be valid JSON") from exc
+    if not isinstance(payload, dict) or set(payload) != {"findings"}:
+        raise ValueError("wiki maintainer: response must contain only a findings array")
+    findings = payload["findings"]
+    _validate_findings(findings)
+    return findings
 
-    findings = payload.get("findings") if isinstance(payload, dict) else None
+
+def _validate_findings(findings: List[dict]) -> None:
     if not isinstance(findings, list):
-        LOG.warning(
-            "wiki maintainer: response missing findings array; treating as no findings"
-        )
-        return []
-    return [finding for finding in findings if isinstance(finding, dict)]
+        raise ValueError("wiki maintainer: findings must be an array")
+    for index, finding in enumerate(findings):
+        prefix = f"wiki maintainer: finding {index}"
+        if not isinstance(finding, dict) or set(finding) != {"target_page", "title", "body", "sources"}:
+            raise ValueError(f"{prefix} must contain target_page, title, body, and sources")
+        for key in ("target_page", "title", "body"):
+            if not isinstance(finding[key], str) or not finding[key].strip():
+                raise ValueError(f"{prefix}: {key} must be a nonempty string")
+        sources = finding["sources"]
+        if not isinstance(sources, list) or any(not isinstance(source, str) for source in sources):
+            raise ValueError(f"{prefix}: sources must be an array of strings")
 
 
 def _target_page(value: str) -> Path | None:
@@ -324,7 +327,7 @@ def _next_finding_id(path: Path) -> str:
 
 
 def _covered_by_existing(path: Path, title: str, body: str) -> bool:
-    existing = path.read_text(encoding="utf-8").lower()
+    existing = " ".join(path.read_text(encoding="utf-8").lower().split())
     title_norm = " ".join(title.lower().split())
     body_norm = " ".join(body.lower().split())
     return bool(title_norm and title_norm in existing) or bool(body_norm and body_norm in existing)
@@ -364,17 +367,17 @@ def _append_finding_log(path: Path, finding_id: str, title: str, sources: List[s
 
 
 def apply_findings(findings: List[dict], *, round_idx: int) -> int:
+    _validate_findings(findings)
     added = 0
     skipped = 0
     for finding in findings:
-        target = _target_page(str(finding.get("target_page", "")))
-        title = str(finding.get("title", "")).strip()
-        body = str(finding.get("body", "")).strip()
-        raw_sources = finding.get("sources", [])
-        sources = [str(source).strip() for source in raw_sources if str(source).strip()] if isinstance(raw_sources, list) else []
+        target = _target_page(finding["target_page"])
+        title = finding["title"].strip()
+        body = finding["body"].strip()
+        sources = [source.strip() for source in finding["sources"] if source.strip()]
 
-        if target is None or not title or not body:
-            LOG.warning("wiki maintainer: skipped malformed finding in round %d", round_idx)
+        if target is None:
+            LOG.warning("wiki maintainer: skipped invalid target in round %d", round_idx)
             skipped += 1
             continue
         if _covered_by_existing(target, title, body):
