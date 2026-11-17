@@ -1,10 +1,4 @@
-"""Dense-CoT annotation worker plus the annotation JSON contract.
-
-This file owns:
-    - the JSON schema handoff to Gemini
-    - the JSON parser used on Gemini responses
-    - the worker functions that drive Gemini and write annotation files
-"""
+"""Parse Gemini responses and write task annotations."""
 
 from __future__ import annotations
 
@@ -19,6 +13,7 @@ from typing import Iterable, List, Optional, Tuple
 
 from . import coverage, manifest, paths, wiki
 from .gemini import GeminiClient
+from .validation import validate_bbox, validate_cot
 
 LOG = logging.getLogger(__name__)
 
@@ -32,21 +27,10 @@ class AnnotationParseError(ValueError):
 
 
 def _bbox(value: object) -> BBox:
-    if value is None:
-        raise AnnotationParseError("subject_bbox is required")
-    if not isinstance(value, list) or len(value) != 4:
-        raise AnnotationParseError("subject_bbox must be an array of 4 numbers")
     try:
-        left, top, right, bottom = (float(v) for v in value)
-    except (TypeError, ValueError) as e:
-        raise AnnotationParseError("subject_bbox must contain only numbers") from e
-    if any(coord < 0.0 for coord in (left, top, right, bottom)):
-        raise AnnotationParseError(
-            f"subject_bbox must use positive coordinates: {value}"
-        )
-    if left >= right or top >= bottom:
-        raise AnnotationParseError(f"subject_bbox coordinates are not ordered: {value}")
-    return (left, top, right, bottom)
+        return validate_bbox(value)
+    except ValueError as exc:
+        raise AnnotationParseError(str(exc)) from exc
 
 
 @dataclass
@@ -100,14 +84,15 @@ def parse_annotation_json(
 
     modality = str(payload.get("modality", "")).strip().lower()
     difficulty = str(payload.get("difficulty", "")).strip().lower()
-    cot = str(payload.get("cot", "")).strip()
+    try:
+        cot = validate_cot(payload.get("cot"))
+    except ValueError as exc:
+        raise AnnotationParseError(str(exc)) from exc
 
     if modality not in {"rgb", "thermal"}:
         raise AnnotationParseError("modality must be rgb or thermal")
     if difficulty not in {"easy", "hard"}:
         raise AnnotationParseError("difficulty must be easy or hard")
-    if not cot:
-        raise AnnotationParseError("cot is required")
 
     return Annotation(
         image_id=image_id,
@@ -128,7 +113,6 @@ def _annotation_path(item: manifest.ImageItem) -> Path:
     return out_dir / f"{item.image_id}.json"
 
 
-
 def _repo_relative(path: Path) -> str:
     try:
         return str(path.relative_to(paths.ROOT))
@@ -146,7 +130,7 @@ def _existing_annotation(item: manifest.ImageItem) -> Optional[Path]:
 
 
 def _serialize(ann: Annotation) -> str:
-    return json.dumps(ann.to_dict(), indent=2)
+    return json.dumps(ann.to_dict(), indent=2, allow_nan=False)
 
 
 def annotate_one(

@@ -1,8 +1,7 @@
 # Instructions
 
 Operational behavior and semantics for the triage CoT labeling repository.
-**Environment setup, `uv`, API keys, and all shell commands live in
-`README.md`.**
+See [README.md](README.md) for setup and commands.
 
 ## Runtime Model
 
@@ -73,8 +72,10 @@ inside wiki pages.
 The annotation pass produces one JSON file per image/category task.
 
 ```text
-outputs/annotations/<label>/<image_id>.json
+outputs/cot_annotations/<label>/<image_id>.json
 ```
+
+With `--split`, the output directory is `outputs/<split>/cot_annotations/`.
 
 The annotation file stores the dense natural CoT and minimal task provenance. It
 does not store wiki edits, rule coverage, or runtime audit metadata.
@@ -127,13 +128,17 @@ Reusable guidance text.
 ```
 
 The heading format must be exactly `### NNN - Short title`. Do not renumber
-existing findings. The maintainer is allowed to make no edits; that is the
-normal stop condition for the autonomous loop. Sources are written only in
-`wiki/log.md`, not inside findings.
+existing findings. A valid response with no new findings ends the loop.
+Sources belong only in `wiki/log.md`, not inside findings.
+
+An invalid maintainer response fails the round instead of reporting convergence.
+The pipeline saves pending maintenance in `outputs/maintainer/pending.json`, or `outputs/<split>/maintainer/pending.json` with a split.
+The next normal run retries maintenance from the saved complete annotations without repeating annotation calls.
 
 ## Coverage
 
-`wiki/coverage/coverage.csv` is the live requeue sheet.
+The default requeue sheet is `wiki/coverage/coverage.csv`.
+With `--split`, the sheet is `outputs/<split>/coverage/coverage.csv`.
 
 Rows are tasks. Columns are numbered wiki findings. Cells are:
 
@@ -143,46 +148,69 @@ Rows are tasks. Columns are numbered wiki findings. Cells are:
 
 Coverage columns are stable IDs such as `general/thermal/001` or
 `categories/amputation_arm/001`. General findings apply to all tasks. Category
-findings apply only to that category label; other labels are marked `n/a`.
+findings apply only to that category label. Other labels have `n/a` cells.
 
 When a new finding is added, the sheet gains a new column and applicable
 existing rows start as `not_done`. Editing the text of an existing finding does
 not create a new column.
 
-Keep the file when resuming the same labeling project. The `--fresh-coverage`
-flag starts an independent fresh run: it deletes only the existing coverage
-sheet and rebuilds it from the current manifests and wiki. Annotation files
-under `outputs/annotations/` are not deleted; valid existing annotations are
-reused on the next run. See `README.md` for how to invoke it.
+To resume the same project, keep the coverage file.
+Filtered runs preserve coverage rows for tasks outside the selection.
+New findings still mark applicable tasks outside the selection as `not_done`.
+
+The `--fresh-coverage` flag removes the current coverage sheet and rebuilds coverage from the manifests and wiki.
+It keeps annotation files. The pipeline can reuse valid existing annotations.
+This flag resets coverage, including state outside a filtered selection.
 
 ## Pipeline stages (`pipeline.run`)
 
 What the main entrypoint does in order:
 
 1. Load selected tasks from `exports/`.
-2. Optionally reset `coverage.csv` (when using fresh coverage; see README).
+2. If `--fresh-coverage` is set, reset `coverage.csv`.
 3. Refresh coverage against the current wiki.
 4. Annotate tasks that are missing or `not_done`.
 5. Run the wiki-maintainer agent.
 6. Continue only if new numbered findings were added.
-7. Export dataset JSONL only when the loop converged and coverage is clean.
+7. Export only selected, completed tasks after convergence and clean coverage for that selection.
 
 ## Human review in Obsidian
 
-Two helpers exist: **annotation review** produces a scrollable markdown file with
-CoT and images; **wiki graph vault** materializes the wiki as an Obsidian vault
-with native Graph View. Outputs are under `outputs/` as described in README.
-Invoke them from the repository root using the commands in README (Visualizing
-section).
+The annotation review helper produces a markdown file with CoT and images.
+The wiki graph helper creates an Obsidian vault with Graph View.
+Both helpers write under `outputs/`.
+See the Usage section in [README.md](README.md) for commands.
 
 ## Inputs and exports
 
-Manifest layout under `exports/`, `bbox_map.json`, and bounding-box semantics are
-documented in README (Inputs and Bounding Boxes).
+Without `--split`, the pipeline reads root `exports/` if that directory exists. Otherwise, it reads `data/`.
+An explicit `--split` selects `data/<split>/`, even if root `exports/` exists.
+`--data-dir` overrides the input directory. An `exports/` child, if present, contains the label directories.
+Each label directory contains `yes/` and `no/` image directories.
 
-`outputs/dataset/` is written by `pipeline.export` only when the loop converged
-and coverage has no `not_done` cells. The exporter splits annotations by
-`difficulty`: `easy` rows go to `sft.jsonl` and `hard` rows go to `rlvr.jsonl`.
+The loader reads `bbox_map.json` from the exports directory or its parent.
+Keys use `images/<filename>`. Each entry supplies absolute pixel coordinates:
+
+```json
+{
+  "images/0052_frame.jpg": {
+    "bbox": [100, 150, 400, 450],
+    "img_w": 1920,
+    "img_h": 1080
+  }
+}
+```
+
+`pipeline.run` exports only completed task IDs from the current selection.
+Unrelated annotation files do not enter a filtered export.
+The standalone `pipeline.export` command validates coverage for all persisted tasks before export.
+Its `--split` argument selects the split output directory.
+Missing or incomplete coverage prevents export. The standalone command does not establish wiki convergence.
+
+Dataset files share the annotation directory: `outputs/cot_annotations/`, or `outputs/<split>/cot_annotations/` with a split.
+The exporter replaces `sft.jsonl` and `rlvr.jsonl` with the selected dataset.
+It splits tasks by `difficulty`: `easy` tasks go to `sft.jsonl` and `hard` tasks go to `rlvr.jsonl`.
 
 Each row contains `image`, `task_id`, `image_id`, `label`, `question`, `answer`
 (from `gt_answer`), `cot`, `subject_bbox`, `modality`, and `difficulty`.
+The task ID is `label + "__" + image_id`.
