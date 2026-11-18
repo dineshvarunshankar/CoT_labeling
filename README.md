@@ -1,16 +1,20 @@
-# Triage CoT Labeling
+# Wiki-Guided CoT Annotation
 
-Generate JSON annotations for triage images with Gemini through the CMU AI Gateway.
-The model explains existing ground-truth answers. A markdown wiki supplies memory across annotation rounds.
-A separate maintainer pass adds reusable findings and requeues affected tasks.
+Generate structured explanations for existing triage labels with Gemini through the CMU AI Gateway.
+Each task supplies an image, a question, and a ground-truth answer.
+A shared Markdown wiki guides the model's interpretation of visual evidence.
+
+A separate Gemini maintainer pass adds reusable findings to the wiki.
+New findings trigger another annotation round for affected tasks.
+Ground-truth answers remain unchanged across rounds.
 
 ## Setup
 
 Use Python 3.10 or later and `uv`.
 
 ```bash
-git clone https://github.com/dineshvarunshankar/CoT_labeling.git
-cd CoT_labeling
+git clone https://github.com/dineshvarunshankar/Wiki-Guided-CoT-Annotation.git
+cd Wiki-Guided-CoT-Annotation
 uv sync
 export CMU_GATEWAY_API_KEY='<your-key>'
 export LLM_MODEL='gemini/gemini-3.1-pro-preview'
@@ -58,7 +62,7 @@ Open `outputs/01_05_26/review.md` for the review. Open `outputs/wiki_graph_vault
 ## Project Structure
 
 ```text
-CoT_labeling/
+Wiki-Guided-CoT-Annotation/
 ├── AGENTS.md        # agent operating schema
 ├── INSTRUCTIONS.md  # runtime, coverage, and export details
 ├── data/            # input images, grouped by split
